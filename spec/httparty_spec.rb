@@ -6,10 +6,14 @@ class CustomParser
   end
 end
 
+class FakeClient 
+  include HTTParty
+
+end
+
 describe HTTParty do
   before(:each) do
-    @klass = Class.new
-    @klass.instance_eval { include HTTParty }
+    @klass = FakeClient.new
   end
 
   describe "AllowedFormats deprecated" do
@@ -388,87 +392,6 @@ describe HTTParty do
       lambda do
         @klass.options('/foo', :no_follow => true)
       end.should raise_error(HTTParty::RedirectionTooDeep) {|e| e.response.body.should == 'first redirect'}
-    end
-  end
-
-  describe "with multiple class definitions" do
-    before(:each) do
-      @klass.instance_eval do
-        base_uri "http://first.com"
-        default_params :one => 1
-      end
-
-      @additional_klass = Class.new
-      @additional_klass.instance_eval do
-        include HTTParty
-        base_uri "http://second.com"
-        default_params :two => 2
-      end
-    end
-
-    it "should not run over each others options" do
-      @klass.default_options.should == { :base_uri => 'http://first.com', :default_params => { :one => 1 } }
-      @additional_klass.default_options.should == { :base_uri => 'http://second.com', :default_params => { :two => 2 } }
-    end
-  end
-
-  describe "two child classes inheriting from one parent" do
-    before(:each) do
-      @parent = Class.new do
-        include HTTParty
-        def self.name
-          "Parent"
-        end
-      end
-
-      @child1 = Class.new(@parent)
-      @child2 = Class.new(@parent)
-    end
-
-    it "does not modify each others inherited attributes" do
-      @child1.default_params :joe => "alive"
-      @child2.default_params :joe => "dead"
-
-      @child1.default_options.should == { :default_params => {:joe => "alive"} }
-      @child2.default_options.should == { :default_params => {:joe => "dead"} }
-
-      @parent.default_options.should == { }
-    end
-
-    it "inherits default_options from the superclass" do
-      @parent.basic_auth 'user', 'password'
-      @child1.default_options.should == {:basic_auth => {:username => 'user', :password => 'password'}}
-      @child1.basic_auth 'u', 'p' # modifying child1 has no effect on child2
-      @child2.default_options.should == {:basic_auth => {:username => 'user', :password => 'password'}}
-    end
-
-    it "doesn't modify the parent's default options" do
-      @parent.basic_auth 'user', 'password'
-
-      @child1.basic_auth 'u', 'p'
-      @child1.default_options.should == {:basic_auth => {:username => 'u', :password => 'p'}}
-
-      @child1.basic_auth 'email', 'token'
-      @child1.default_options.should == {:basic_auth => {:username => 'email', :password => 'token'}}
-
-      @parent.default_options.should == {:basic_auth => {:username => 'user', :password => 'password'}}
-    end
-
-    it "inherits default_cookies from the parent class" do
-      @parent.cookies 'type' => 'chocolate_chip'
-      @child1.default_cookies.should == {"type" => "chocolate_chip"}
-      @child1.cookies 'type' => 'snickerdoodle'
-      @child1.default_cookies.should == {"type" => "snickerdoodle"}
-      @child2.default_cookies.should == {"type" => "chocolate_chip"}
-    end
-
-    it "doesn't modify the parent's default cookies" do
-      @parent.cookies 'type' => 'chocolate_chip'
-
-      @child1.cookies 'type' => 'snickerdoodle'
-      @child1.default_cookies.should == {"type" => "snickerdoodle"}
-
-      @parent.default_cookies.should == {"type" => "chocolate_chip"}
     end
   end
 
