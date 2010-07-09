@@ -1,4 +1,4 @@
-require File.join(File.dirname(__FILE__), '..', 'lib', 'httparty')
+require File.join(File.dirname(__FILE__), '..', 'lib', 'ihttparty')
 require 'spec/autorun'
 require 'fakeweb'
 
